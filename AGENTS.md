@@ -32,7 +32,32 @@ Invoice approval demo app: ASP.NET Core 8 Web API with a small static web UI.
 - `demo.approver` / `ChangeMe123!` (role Approver)
 - `demo.admin` / `ChangeMe123!` (role Admin)
 
+## Approval Rules (Role-Based Limits)
+
+### Single Approver Limits
+- **Manager**: Can approve invoices up to $50,000
+- **Director**: Can approve invoices up to $500,000
+- **Admin**: Can approve any amount (but amounts >$500k still need two approvers)
+
+### Two-Approver Requirements (Invoices > $500,000)
+- Must have TWO distinct approvers
+- First approver: Can be any role (Manager, Director, or Admin)
+- Second approver: MUST be Director or Admin
+- Same user CANNOT be both first and second approver
+
+### Rejection Rules
+- Rejected approval must return clear, specific error message
+- Invoice state must remain UNCHANGED (stay in PendingApproval)
+- Error messages must include the actual invoice amount
+
+### Review Expectations
+- Test EVERY approval rule including edge cases
+- **Critical negative tests**: Same user twice, non-director as second approver
+- Verify invoice state unchanged on all rejections
+- Mutation testing score should be >80% on approval logic
+
 ## Never
 
 - Commit real credentials, tokens or customer data.
 - Add business logic to `Program.cs` or controllers.
+- Skip negative test scenarios (they're where bugs hide).
