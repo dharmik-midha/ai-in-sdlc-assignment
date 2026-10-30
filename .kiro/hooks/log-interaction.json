@@ -1,0 +1,29 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Log AI Interactions",
+      "trigger": "PostToolUse",
+      "action": {
+        "type": "command",
+        "command": "echo '{\"timestamp\":\"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'\",\"tool\":\"'$KIRO_TOOL_NAME'\",\"status\":\"completed\"}' >> logs/ai-log.jsonl"
+      }
+    },
+    {
+      "name": "Log Agent Task Start",
+      "trigger": "PreTaskExec",
+      "action": {
+        "type": "command",
+        "command": "echo '{\"timestamp\":\"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'\",\"event\":\"task_start\",\"agent\":\"'$KIRO_AGENT_NAME'\"}' >> logs/ai-log.jsonl"
+      }
+    },
+    {
+      "name": "Log Agent Task Complete",
+      "trigger": "PostTaskExec",
+      "action": {
+        "type": "command",
+        "command": "echo '{\"timestamp\":\"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'\",\"event\":\"task_complete\",\"agent\":\"'$KIRO_AGENT_NAME'\"}' >> logs/ai-log.jsonl"
+      }
+    }
+  ]
+}
