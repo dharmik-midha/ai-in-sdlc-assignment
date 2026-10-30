@@ -2,11 +2,14 @@ namespace InvoiceApp.Domain;
 
 /// <summary>
 /// Moves an invoice through its lifecycle: Draft -> PendingApproval -> Approved or Rejected.
-/// One invoice at a time, decided as a whole by a single approver.
+/// Enforces role-based approval limits.
 /// </summary>
 public class ApprovalService
 {
     private readonly IInvoiceRepository _repository;
+    
+    private const decimal ManagerApprovalLimit = 50_000m;
+    private const decimal DirectorApprovalLimit = 500_000m;
 
     public ApprovalService(IInvoiceRepository repository)
     {
@@ -28,14 +31,19 @@ public class ApprovalService
         return invoice;
     }
 
-    public Invoice Approve(string invoiceId, string approver)
+    public Invoice Approve(string invoiceId, string approver, ApproverRole approverRole)
     {
         var invoice = Find(invoiceId);
         EnsurePending(invoice);
+        
+        // Validate approval authority based on role and amount
+        ValidateApprovalAuthority(invoice, approverRole);
 
         invoice.Status = InvoiceStatus.Approved;
         invoice.DecidedBy = approver;
         invoice.DecidedAt = DateTime.UtcNow;
+        invoice.FirstApprovedBy = approver;
+        invoice.FirstApprovedAt = DateTime.UtcNow;
         _repository.Update(invoice);
         return invoice;
     }
@@ -56,6 +64,31 @@ public class ApprovalService
         invoice.DecisionNote = reason;
         _repository.Update(invoice);
         return invoice;
+    }
+    
+    private void ValidateApprovalAuthority(Invoice invoice, ApproverRole role)
+    {
+        // Admin has unlimited approval authority
+        if (role == ApproverRole.Admin)
+        {
+            return;
+        }
+        
+        // Manager can approve up to $50,000
+        if (role == ApproverRole.Manager && invoice.Amount > ManagerApprovalLimit)
+        {
+            throw new InvalidOperationException(
+                $"Manager role can only approve invoices up to ${ManagerApprovalLimit:N0}. " +
+                $"This invoice amount is ${invoice.Amount:N2}.");
+        }
+        
+        // Director can approve up to $500,000
+        if (role == ApproverRole.Director && invoice.Amount > DirectorApprovalLimit)
+        {
+            throw new InvalidOperationException(
+                $"Director role can only approve invoices up to ${DirectorApprovalLimit:N0}. " +
+                $"This invoice amount is ${invoice.Amount:N2}.");
+        }
     }
 
     private Invoice Find(string invoiceId) =>

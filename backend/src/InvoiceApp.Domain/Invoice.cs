@@ -10,4 +10,8 @@ public class Invoice
     public string? DecidedBy { get; set; }
     public DateTime? DecidedAt { get; set; }
     public string? DecisionNote { get; set; }
+    
+    // First approver tracking (for >$500k two-approver flow)
+    public string? FirstApprovedBy { get; set; }
+    public DateTime? FirstApprovedAt { get; set; }
 }
