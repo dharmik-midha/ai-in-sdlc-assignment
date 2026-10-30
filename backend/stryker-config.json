@@ -1,0 +1,22 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker-net/master/src/Stryker.CLI/Stryker.CLI/schema.json",
+  "stryker-config": {
+    "project-file": "src/InvoiceApp.Domain/InvoiceApp.Domain.csproj",
+    "test-projects": [
+      "tests/InvoiceApp.Tests/InvoiceApp.Tests.csproj"
+    ],
+    "reporters": [
+      "html",
+      "progress",
+      "json"
+    ],
+    "thresholds": {
+      "high": 80,
+      "low": 60,
+      "break": 50
+    },
+    "mutation-level": "complete",
+    "concurrency": 4,
+    "output-path": "stryker-output"
+  }
+}
