@@ -14,4 +14,8 @@ public class Invoice
     // First approver tracking (for >$500k two-approver flow)
     public string? FirstApprovedBy { get; set; }
     public DateTime? FirstApprovedAt { get; set; }
+    
+    // Second approver tracking (for >$500k two-approver flow)
+    public string? SecondApprovedBy { get; set; }
+    public DateTime? SecondApprovedAt { get; set; }
 }
