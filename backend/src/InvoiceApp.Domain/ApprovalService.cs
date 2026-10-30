@@ -36,7 +36,26 @@ public class ApprovalService
         var invoice = Find(invoiceId);
         EnsurePending(invoice);
         
-        // Validate approval authority based on role and amount
+        // For invoices >$500k, require two distinct approvers (except Admin as first approver)
+        if (invoice.Amount > DirectorApprovalLimit)
+        {
+            // Admin can approve immediately if they are the first approver
+            if (approverRole == ApproverRole.Admin && string.IsNullOrEmpty(invoice.FirstApprovedBy))
+            {
+                invoice.Status = InvoiceStatus.Approved;
+                invoice.DecidedBy = approver;
+                invoice.DecidedAt = DateTime.UtcNow;
+                invoice.FirstApprovedBy = approver;
+                invoice.FirstApprovedAt = DateTime.UtcNow;
+                _repository.Update(invoice);
+                return invoice;
+            }
+            
+            // Otherwise follow two-approver flow
+            return HandleTwoApproverApproval(invoice, approver, approverRole);
+        }
+        
+        // Single-approver validation for invoices <=$500k
         ValidateApprovalAuthority(invoice, approverRole);
 
         invoice.Status = InvoiceStatus.Approved;
@@ -44,6 +63,46 @@ public class ApprovalService
         invoice.DecidedAt = DateTime.UtcNow;
         invoice.FirstApprovedBy = approver;
         invoice.FirstApprovedAt = DateTime.UtcNow;
+        _repository.Update(invoice);
+        return invoice;
+    }
+    
+    private Invoice HandleTwoApproverApproval(Invoice invoice, string approver, ApproverRole approverRole)
+    {
+        // First approval
+        if (string.IsNullOrEmpty(invoice.FirstApprovedBy))
+        {
+            // First approver can be Manager, Director, or Admin
+            invoice.FirstApprovedBy = approver;
+            invoice.FirstApprovedAt = DateTime.UtcNow;
+            _repository.Update(invoice);
+            return invoice;
+        }
+        
+        // Second approval - validate constraints
+        
+        // Rule 1: Second approver must be different from first
+        if (invoice.FirstApprovedBy.Equals(approver, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                $"Same user cannot approve an invoice twice. " +
+                $"First approver: {invoice.FirstApprovedBy}, Second approver: {approver}.");
+        }
+        
+        // Rule 2: Second approver must be Director or Admin
+        if (approverRole == ApproverRole.Manager)
+        {
+            throw new InvalidOperationException(
+                $"Second approver must be Director or Admin for invoices above ${DirectorApprovalLimit:N0}. " +
+                $"Current approver role: {approverRole}.");
+        }
+        
+        // Second approval completes the process
+        invoice.Status = InvoiceStatus.Approved;
+        invoice.DecidedBy = approver;
+        invoice.DecidedAt = DateTime.UtcNow;
+        invoice.SecondApprovedBy = approver;
+        invoice.SecondApprovedAt = DateTime.UtcNow;
         _repository.Update(invoice);
         return invoice;
     }
